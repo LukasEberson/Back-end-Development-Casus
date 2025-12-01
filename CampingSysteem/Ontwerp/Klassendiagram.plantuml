@@ -1,0 +1,57 @@
+@startuml
+title Klassendiagram - Camping Systeem
+
+class CampingRekening {
+  reserveringen: CampingReservering[]
+  toeristenbelasting: int
+  korting: int
+  betaald: bool
+}
+
+class CampingReservering {
+  naam: string
+  emailadres: string
+  telefoonnummer: string
+  beginDatum: string
+  eindDatum: string
+  plaatsReserveringen: CampingPlaatsReservering[]
+}
+
+class CampingPlaatsReservering {
+  reservering: CampingReservering
+  plaats: CampingPlaats
+  tarieven: CampingPlaatsTarieven
+  aantalVolwassenen: int
+  aantalKinderenOnder7: int
+  aantalKinderenOnder12: int
+  aantalHonden: int
+}
+
+class CampingPlaats {
+  type: CampingPlaatsType
+  nummer: int
+}
+
+class CampingPlaatsType {
+}
+
+class CampingPlaatsTarieven {
+  type: CampingPlaatsType
+  geldigVan: string
+  geldigTot: string
+  tariefVolwassenen: int
+  tariefKinderenOnder7: int
+  tariefKinderenOnder12: int
+  tariefHonden: int
+  tariefElectriciteit: int
+}
+
+CampingRekening "1" -- "1..*" CampingReservering
+CampingReservering "1" -- "1..*" CampingPlaatsReservering
+CampingPlaatsReservering "0..*" -- "1" CampingPlaats
+
+CampingPlaatsTarieven "1" -- "0..*" CampingPlaatsReservering
+CampingPlaatsTarieven "1..*" -- "1" CampingPlaatsType
+CampingPlaats "0..*" -- "1" CampingPlaatsType
+
+@enduml
