@@ -8,7 +8,7 @@ public class CampingPlek
     public decimal PrijsPerNacht { get; set; }
 }
 
-// ===== Models/Reservering.cs =====
+// Models/Reservering.cs
 public class Reservering
 {
     public int Id { get; set; }
@@ -19,9 +19,6 @@ public class Reservering
     public DateTime EindDatum { get; set; }
     public decimal TotaalPrijs { get; set; }
 }
-
-// ===== Data/CampingRepository.cs =====
-using System.Data.SqlClient;
 
 public class CampingRepository
 {
