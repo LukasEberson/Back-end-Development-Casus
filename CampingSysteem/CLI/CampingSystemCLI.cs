@@ -1,4 +1,4 @@
-namespace CommandLineInterface
+namespace CampingSystem
 {
     public class CampingSystemCLI
     {

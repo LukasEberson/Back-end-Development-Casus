@@ -1,6 +1,6 @@
 using CampingSysteem;
 
-namespace CommandLineInterface
+namespace CampingSystem
 {
     public class MainMenuScreen : SelectionScreen
     {

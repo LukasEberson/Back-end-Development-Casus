@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 
-namespace CommandLineInterface
+namespace CampingSystem
 {
     /// <summary>
     /// A screen that displays a list of options for the user the choose from.
