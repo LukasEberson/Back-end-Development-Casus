@@ -1,4 +1,4 @@
-namespace CommandLineInterface
+namespace CampingSystem
 {
     /// <summary>
     /// The base class for a CLI screen. A screen takes up the whole console window.

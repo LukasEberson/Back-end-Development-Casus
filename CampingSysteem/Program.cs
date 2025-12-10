@@ -1,6 +1,4 @@
-﻿using CommandLineInterface;
-
-namespace CampingSysteem
+﻿namespace CampingSystem
 {
     internal class Program
     {

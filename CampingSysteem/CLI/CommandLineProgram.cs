@@ -1,6 +1,6 @@
 using Microsoft.IdentityModel.Tokens;
 
-namespace CommandLineInterface
+namespace CampingSystem
 {
     public class CommandLineProgram
     {

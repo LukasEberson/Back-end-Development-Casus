@@ -1,6 +1,4 @@
-using CampingSysteem;
-
-namespace CommandLineInterface
+namespace CampingSystem
 {
     public class MainMenuScreen : SelectionScreen
     {
@@ -10,47 +8,45 @@ namespace CommandLineInterface
         {
             this.SetCloseKeyAndDescription("s", "Afsluiten.");
 //            this.AddOpenScreenOption("Maak reservering.", new MakeReservationScreen(program));
-            this.AddOption("Voeg campingplaats toe.", _ => this.VoegPlaatsToe());
-            this.AddOption("Toon campingplaatsen.", _ => this.ToonPlaatsen());
+            this.AddOption("Toon campingplaats typen.", _ => this.ToonCampingPlaatsTypen());
+            this.AddOption("Toon campingplaatsen.", _ => this.ToonCampingPlaatsen());
+            this.AddOption("Toon campingplaats reserveringen.", _ => this.ToonCampingPlaatsReserveringen());
         }
 
-        private void VoegPlaatsToe()
+        private void ToonCampingPlaatsTypen()
         {
-            Console.Clear();
-            Console.Write("Plaatsnummer: ");
-            int nummer = int.Parse(Console.ReadLine());
+            DAL dal = new DAL();
+            List<CampingPlaatsType> typen = dal.GetCampingPlaatsTypen();
 
-            Console.Write("Type: ");
-            string? type = Console.ReadLine();
-
-            if (string.IsNullOrEmpty(type))
+            foreach (CampingPlaatsType type in typen)
             {
-                Console.WriteLine("Type mag niet leeg zijn");
-                Console.ReadKey();
-                return;
+                type.PrettyPrint();
             }
 
-            plaatsen.Add(new CampingPlaats(nummer, type));
-
-            Console.WriteLine("\nCampingplaats toegevoegd!");
             Console.ReadKey();
         }
 
-        private void ToonPlaatsen()
+        private void ToonCampingPlaatsen()
         {
-            Console.Clear();
-            Console.WriteLine("=== Alle Campingplaatsen ===\n");
+            DAL dal = new DAL();
+            List<CampingPlaats> plaatsen = dal.GetCampingPlaatsen();
 
-            if (plaatsen.Count == 0)
+            foreach (CampingPlaats plaats in plaatsen)
             {
-                Console.WriteLine("Geen campingplaatsen beschikbaar.");
+                plaats.PrettyPrint();
             }
-            else
+
+            Console.ReadKey();
+        }
+
+        private void ToonCampingPlaatsReserveringen()
+        {
+            DAL dal = new DAL();
+            List<CampingPlaatsReservering> reserveringen = dal.GetCampingPlaatsReserveringen();
+
+            foreach (CampingPlaatsReservering reservering in reserveringen)
             {
-                foreach (var plaats in plaatsen)
-                {
-                    Console.WriteLine(plaats);
-                }
+                reservering.PrettyPrint();
             }
 
             Console.ReadKey();
