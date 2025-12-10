@@ -2,11 +2,11 @@
 
 namespace CampingSystem
 {
-    public class CampingRepository
+    public class DAL
     {
         private readonly string _connectionString;
 
-        public CampingRepository(string connectionString)
+        public DAL(string connectionString)
         {
             _connectionString = connectionString;
         }
