@@ -9,14 +9,14 @@ namespace CampingSystem
 
         public void PrettyPrint()
         {
-            this.PrettyPrint("", "");
+            this.PrettyPrint("");
         }
 
-        public void PrettyPrint(string prefix, string name)
+        public void PrettyPrint(string prefix)
         {
-            Console.WriteLine($"{prefix}{name}[{this.Id}]");
+            Console.WriteLine($"{prefix}CampingPlaats: [{this.Id}]");
             prefix += "  ";
-            this.Type?.PrettyPrint(prefix, "Type: ");
+            this.Type?.PrettyPrint(prefix);
             Console.WriteLine($"{prefix}Nummer: {this.Nummer}");
         }
     }

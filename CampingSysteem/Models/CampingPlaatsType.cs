@@ -7,12 +7,12 @@ namespace CampingSystem
 
         public void PrettyPrint()
         {
-            this.PrettyPrint("", "");
+            this.PrettyPrint("");
         }
 
-        public void PrettyPrint(string prefix, string name)
+        public void PrettyPrint(string prefix)
         {
-            Console.WriteLine($"{prefix}{name}[{this.Id}]");
+            Console.WriteLine($"{prefix}CampingPlaatsType: [{this.Id}]");
         }
     }
 }
