@@ -7,9 +7,17 @@ namespace CampingSystem
         public int Nummer {  get; set; }
         public List<CampingPlaatsReservering> Reserveringen { get; set; } = [];
 
-        public override string ToString()
+        public void PrettyPrint()
         {
-            return $"Campingplaats #{Nummer} - Type: {Type}";
+            this.PrettyPrint("");
+        }
+
+        public void PrettyPrint(string prefix)
+        {
+            Console.WriteLine($"{prefix}[{this.Id}]");
+            prefix += "  ";
+            this.Type?.PrettyPrint(prefix);
+            Console.WriteLine($"{prefix}Nummer: {this.Nummer}");
         }
     }
 }

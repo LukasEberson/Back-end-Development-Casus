@@ -7,9 +7,9 @@ namespace CampingSystem
     {
         private readonly string _connectionString;
 
-        public DAL(string connectionString)
+        public DAL()
         {
-            _connectionString = connectionString;
+            _connectionString = "<ja plak m hier maar>";
         }
 
         public List<CampingPlaatsReservering> GetCampingPlaatsReserveringen()
