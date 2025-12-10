@@ -1,10 +1,14 @@
 namespace CampingSystem
 {
-    public class CampingPlek
+    public class CampingPlaats
     {
         public int Id { get; set; }
-        public string Nummer { get; set; }  // bijv. "A1", "B5"
-        public string Type { get; set; }    // bijv. "Tent", "Camper", "Caravan"
-        public decimal PrijsPerNacht { get; set; }
+        public int Nummer {  get; set; }
+        public string Type { get; set; }
+
+        public override string ToString()
+        {
+            return $"Campingplaats #{Nummer} - Type: {Type}";
+        }
     }
 }

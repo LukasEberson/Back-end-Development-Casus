@@ -12,19 +12,19 @@ namespace CampingSystem
         }
 
         // Haal alle camping plekken op
-        public List<CampingPlek> GetAllePlekken()
+        public List<CampingPlaats> GetAllePlekken()
         {
-            var plekken = new List<CampingPlek>();
+            var plekken = new List<CampingPlaats>();
 
             using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("SELECT * FROM CampingPlekken", connection);
+            using var command = new SqlCommand("SELECT * FROM CampingPlaatsken", connection);
 
             connection.Open();
             using var reader = command.ExecuteReader();
 
             while (reader.Read())
             {
-                plekken.Add(new CampingPlek
+                plekken.Add(new CampingPlaats
                 {
                     Id = reader.GetInt32(0),
                     Nummer = reader.GetString(1),
@@ -37,16 +37,16 @@ namespace CampingSystem
         }
 
         // Haal beschikbare plekken op voor bepaalde periode
-        public List<CampingPlek> GetBeschikbarePlekken(DateTime start, DateTime eind)
+        public List<CampingPlaats> GetBeschikbarePlekken(DateTime start, DateTime eind)
         {
-            var plekken = new List<CampingPlek>();
+            var plekken = new List<CampingPlaats>();
 
             using var connection = new SqlConnection(_connectionString);
             var sql = @"
                 SELECT cp.* 
-                FROM CampingPlekken cp
+                FROM CampingPlaatsken cp
                 WHERE cp.Id NOT IN (
-                    SELECT CampingPlekId 
+                    SELECT CampingPlaatsId 
                     FROM Reserveringen
                     WHERE (StartDatum <= @Eind AND EindDatum >= @Start)
                 )";
@@ -60,7 +60,7 @@ namespace CampingSystem
 
             while (reader.Read())
             {
-                plekken.Add(new CampingPlek
+                plekken.Add(new CampingPlaats
                 {
                     Id = reader.GetInt32(0),
                     Nummer = reader.GetString(1),
@@ -82,11 +82,11 @@ namespace CampingSystem
             var checkSql = @"
                 SELECT COUNT(*) 
                 FROM Reserveringen
-                WHERE CampingPlekId = @CampingPlekId
+                WHERE CampingPlaatsId = @CampingPlaatsId
                 AND (StartDatum <= @EindDatum AND EindDatum >= @StartDatum)";
 
             using var checkCommand = new SqlCommand(checkSql, connection);
-            checkCommand.Parameters.AddWithValue("@CampingPlekId", reservering.CampingPlekId);
+            checkCommand.Parameters.AddWithValue("@CampingPlaatsId", reservering.CampingPlaatsId);
             checkCommand.Parameters.AddWithValue("@StartDatum", reservering.StartDatum);
             checkCommand.Parameters.AddWithValue("@EindDatum", reservering.EindDatum);
 
@@ -100,13 +100,13 @@ namespace CampingSystem
             // Maak de reservering
             var insertSql = @"
                 INSERT INTO Reserveringen 
-                (CampingPlekId, KlantNaam, KlantEmail, StartDatum, EindDatum, TotaalPrijs)
+                (CampingPlaatsId, KlantNaam, KlantEmail, StartDatum, EindDatum, TotaalPrijs)
                 VALUES 
-                (@CampingPlekId, @KlantNaam, @KlantEmail, @StartDatum, @EindDatum, @TotaalPrijs);
+                (@CampingPlaatsId, @KlantNaam, @KlantEmail, @StartDatum, @EindDatum, @TotaalPrijs);
                 SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using var insertCommand = new SqlCommand(insertSql, connection);
-            insertCommand.Parameters.AddWithValue("@CampingPlekId", reservering.CampingPlekId);
+            insertCommand.Parameters.AddWithValue("@CampingPlaatsId", reservering.CampingPlaatsId);
             insertCommand.Parameters.AddWithValue("@KlantNaam", reservering.KlantNaam);
             insertCommand.Parameters.AddWithValue("@KlantEmail", reservering.KlantEmail);
             insertCommand.Parameters.AddWithValue("@StartDatum", reservering.StartDatum);
@@ -117,11 +117,11 @@ namespace CampingSystem
         }
 
         // Bereken totaalprijs
-        public decimal BerekenTotaalPrijs(int campingPlekId, DateTime start, DateTime eind)
+        public decimal BerekenTotaalPrijs(int CampingPlaatsId, DateTime start, DateTime eind)
         {
             using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("SELECT PrijsPerNacht FROM CampingPlekken WHERE Id = @Id", connection);
-            command.Parameters.AddWithValue("@Id", campingPlekId);
+            using var command = new SqlCommand("SELECT PrijsPerNacht FROM CampingPlaatsken WHERE Id = @Id", connection);
+            command.Parameters.AddWithValue("@Id", CampingPlaatsId);
 
             connection.Open();
             var prijsPerNacht = (decimal)command.ExecuteScalar();
