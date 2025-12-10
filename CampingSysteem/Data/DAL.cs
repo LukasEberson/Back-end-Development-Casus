@@ -27,7 +27,7 @@ namespace CampingSystem
                 plekken.Add(new CampingPlaats
                 {
                     Id = reader.GetInt32(0),
-                    Nummer = reader.GetString(1),
+                    Nummer = reader.GetInt32(1),
                     Type = reader.GetString(2),
                     PrijsPerNacht = reader.GetDecimal(3)
                 });
@@ -73,7 +73,7 @@ namespace CampingSystem
         }
 
         // Maak een nieuwe reservering
-        public int MaakReservering(Reservering reservering)
+        public int MaakReservering(CampingPlaatsReservering reservering)
         {
             using var connection = new SqlConnection(_connectionString);
             connection.Open();

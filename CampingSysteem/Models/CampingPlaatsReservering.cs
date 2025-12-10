@@ -1,13 +1,12 @@
 namespace CampingSystem
 {
-    public class Reservering
+    public class CampingPlaatsReservering
     {
         public int Id { get; set; }
-        public int CampingPlekId { get; set; }
-        public string KlantNaam { get; set; }
-        public string KlantEmail { get; set; }
-        public DateTime StartDatum { get; set; }
-        public DateTime EindDatum { get; set; }
-        public decimal TotaalPrijs { get; set; }
+        public CampingPlaats? Plaats { get; set; }
+        public int AantalVolwassenen { get; set; }
+        public int AantalKinderenOnder7 { get; set; }
+        public int AantalKinderenOnder12 { get; set; }
+        public int AantalHonden { get; set; }
     }
 }
