@@ -16,7 +16,7 @@ namespace CampingSystem
         {
             Console.WriteLine($"{prefix}[{this.Id}]");
             prefix += "  ";
-            this.Type?.PrettyPrint(prefix);
+            this.Type?.PrettyPrint(prefix + "Type: ");
             Console.WriteLine($"{prefix}Nummer: {this.Nummer}");
         }
     }
