@@ -16,4 +16,8 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CampingSysteemLib\CampingSysteemLib.csproj" />
+  </ItemGroup>
+
 </Project>

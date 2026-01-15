@@ -1,5 +1,4 @@
-﻿using System.Data.Common;
-using Microsoft.Data.SqlClient;
+﻿using System.Data.SqlClient;
 
 namespace CampingSystem
 {
@@ -9,7 +8,7 @@ namespace CampingSystem
 
         public DAL()
         {
-            _connectionString = "<ja plak m hier maar>";
+            _connectionString = "<pleur 'm hiero>";
         }
 
         public List<CampingPlaatsReservering> GetCampingPlaatsReserveringen()
