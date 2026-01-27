@@ -1,4 +1,4 @@
-﻿using System.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 
 namespace CampingSystem
 {
@@ -6,21 +6,36 @@ namespace CampingSystem
     {
         private readonly string _connectionString;
 
+        public Dictionary<int, CampingPlaatsReservering> campingPlaatsReserveringen = [];
+        public Dictionary<int, CampingPlaats> campingPlaatsen = [];
+        public Dictionary<int, CampingPlaatsType> campingPlaatsTypen = [];
+
         public DAL()
         {
             _connectionString = "<pleur 'm hiero>";
+
+            if (_connectionString != null)
+            {
+                this.fetch();
+            }
         }
 
-        public List<CampingPlaatsReservering> GetCampingPlaatsReserveringen()
+        private int parseInt(SqlDataReader reader, int column)
         {
-            List<CampingPlaatsReservering> reserveringen = new List<CampingPlaatsReservering>();
+            return reader.IsDBNull(column) ? -1 : reader.GetInt32(column);
+        }
 
+        private void fetch()
+        {
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
 
                 using (SqlCommand command = connection.CreateCommand())
                 {
+                    // selecteer tabellen die verbonden zijn via een 1 -> x relatie
+                    // zo kunnen alle objecten uit die tabellen worden opgehaald in
+                    // 1 sql command ipv meerdere
                     command.CommandText =
                         "SELECT "
                             + "R.ID, R.PlaatsID, R.AantalVolwassenen, R.AantalKinderenOnder7, R.AantalKinderenOnder12, R.AantalHonden, "
@@ -28,142 +43,112 @@ namespace CampingSystem
                             + "T.ID "
                         + "FROM "
                             + "CampingPlaatsReservering as R "
-                        + "INNER JOIN "
+                        // gebruik right joins zodat ook entiteiten waar de relatie
+                        // leeg is opgehaald worden
+                        + "RIGHT JOIN "
                              + "CampingPlaats as P on R.PlaatsID = P.ID "
-                        + "INNER JOIN "
+                        + "RIGHT JOIN "
                              + "CampingPlaatsType as T on P.TypeID = T.ID "
                         + "ORDER BY "
                             // sorteer op omgekeerde volgorde van 1->x relaties
                             // dan hoeft iedere entiteit enkel een keer te worden
                             // gemaakt en niet later opgezocht
                             + "T.ID, P.ID, R.ID";
-                    
+
                     using (var reader = command.ExecuteReader())
                     {
                         CampingPlaatsType? type = null;
                         CampingPlaats? plaats = null;
                         CampingPlaatsReservering? reservering = null;
-                        
+
                         while (reader.Read())
                         {
-                            int reserveringId = reader.GetInt32(0);
-                            int aantalVolwassenen = reader.GetInt32(2);
-                            int aantalKinderenOnder7 = reader.GetInt32(3);
-                            int aantalKinderenOnder12 = reader.GetInt32(4);
-                            int aantalHonden = reader.GetInt32(5);
-                            int plaatsId = reader.GetInt32(6);
-                            int plaatsNummer = reader.GetInt32(8);
-                            int typeId = reader.GetInt32(9);
+                            int reserveringId = parseInt(reader, 0);
+                            int aantalVolwassenen = parseInt(reader, 2);
+                            int aantalKinderenOnder7 = parseInt(reader, 3);
+                            int aantalKinderenOnder12 = parseInt(reader, 4);
+                            int aantalHonden = parseInt(reader, 5);
+                            int plaatsId = parseInt(reader, 6);
+                            int plaatsNummer = parseInt(reader, 8);
+                            int typeId = parseInt(reader, 9);
 
                             if (type == null || type.Id != typeId)
                             {
-                                type = new CampingPlaatsType()
+                                if (typeId == -1)
                                 {
-                                    Id = typeId
-                                };
+                                    type = null;
+                                }
+                                else
+                                {
+                                    type = new CampingPlaatsType()
+                                    {
+                                        Id = typeId
+                                    };
+
+                                    campingPlaatsTypen.Add(typeId, type);
+                                }
                             }
                             if (plaats == null || plaats.Id != plaatsId)
                             {
-                                plaats = new CampingPlaats()
+                                if (plaatsId == -1)
                                 {
-                                    Id = plaatsId,
-                                    Type = type,
-                                    Nummer = plaatsNummer
-                                };
+                                    plaats = null;
+                                }
+                                else
+                                {
+                                    plaats = new CampingPlaats()
+                                    {
+                                        Id = plaatsId,
+                                        Type = type,
+                                        Nummer = plaatsNummer
+                                    };
 
-                                type.Plaatsen.Add(plaats);
+                                    campingPlaatsen.Add(plaatsId, plaats);
+                                    if (type != null)
+                                    {
+                                        type.Plaatsen.Add(plaats);
+                                    }
+                                }
                             }
                             if (reservering == null || reservering.Id != reserveringId)
                             {
-                                reservering = new CampingPlaatsReservering()
+                                if (reserveringId == -1)
                                 {
-                                    Id = reserveringId,
-                                    Plaats = plaats,
-                                    AantalVolwassenen = aantalVolwassenen,
-                                    AantalKinderenOnder7 = aantalKinderenOnder7,
-                                    AantalKinderenOnder12 = aantalKinderenOnder12,
-                                    AantalHonden = aantalHonden
-                                };
+                                    reservering = null;
+                                }
+                                else
+                                {
+                                    reservering = new CampingPlaatsReservering()
+                                    {
+                                        Id = reserveringId,
+                                        Plaats = plaats,
+                                        AantalVolwassenen = aantalVolwassenen,
+                                        AantalKinderenOnder7 = aantalKinderenOnder7,
+                                        AantalKinderenOnder12 = aantalKinderenOnder12,
+                                        AantalHonden = aantalHonden
+                                    };
 
-                                plaats.Reserveringen.Add(reservering);
-                                reserveringen.Add(reservering);
+                                    campingPlaatsReserveringen.Add(reserveringId, reservering);
+                                    if (plaats != null)
+                                    {
+                                        plaats.Reserveringen.Add(reservering);
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
+        }
 
-            return reserveringen;
+        public ICollection<CampingPlaatsReservering> GetCampingPlaatsReserveringen()
+        {
+            return campingPlaatsReserveringen.Values;
         }
 
         public CampingPlaatsReservering? GetCampingPlaatsReservering(int id)
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-
-                using (SqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandText =
-                        "SELECT "
-                            + "R.ID, R.PlaatsID, R.AantalVolwassenen, R.AantalKinderenOnder7, R.AantalKinderenOnder12, R.AantalHonden, "
-                            + "P.ID, P.TypeID, P.Nummer, "
-                            + "T.ID "
-                        + "FROM "
-                            + "CampingPlaatsReservering as R "
-                        + "INNER JOIN "
-                             + "CampingPlaats as P on R.PlaatsID = P.ID "
-                        + "INNER JOIN "
-                             + "CampingPlaatsType as T on P.TypeID = T.ID "
-                        + "WHERE "
-                            + "R.ID = @id";
-                    command.Parameters.AddWithValue("@id", id);
-                    
-                    using (var reader = command.ExecuteReader())
-                    {
-                        if (!reader.Read())
-                        {
-                            return null;
-                        }
-                        else
-                        {
-                            int reserveringId = reader.GetInt32(0);
-                            int aantalVolwassenen = reader.GetInt32(2);
-                            int aantalKinderenOnder7 = reader.GetInt32(3);
-                            int aantalKinderenOnder12 = reader.GetInt32(4);
-                            int aantalHonden = reader.GetInt32(5);
-                            int plaatsId = reader.GetInt32(6);
-                            int plaatsNummer = reader.GetInt32(8);
-                            int typeId = reader.GetInt32(9);
-
-                            CampingPlaatsType type = new CampingPlaatsType()
-                            {
-                                Id = typeId
-                            };
-                            CampingPlaats plaats = new CampingPlaats()
-                            {
-                                Id = plaatsId,
-                                Type = type,
-                                Nummer = plaatsNummer
-                            };
-                            CampingPlaatsReservering reservering = new CampingPlaatsReservering()
-                            {
-                                Id = reserveringId,
-                                Plaats = plaats,
-                                AantalVolwassenen = aantalVolwassenen,
-                                AantalKinderenOnder7 = aantalKinderenOnder7,
-                                AantalKinderenOnder12 = aantalKinderenOnder12,
-                                AantalHonden = aantalHonden
-                            };
-
-                            type.Plaatsen.Add(plaats);
-                            plaats.Reserveringen.Add(reservering);
-
-                            return reservering;
-                        }
-                    }
-                }
-            }
+            return campingPlaatsReserveringen.GetValueOrDefault(id);
         }
 
         public void CreateCampingPlaatsReservering(CampingPlaatsReservering reservering)
@@ -188,6 +173,8 @@ namespace CampingSystem
                     command.ExecuteNonQuery();
                 }
             }
+
+            campingPlaatsReserveringen[reservering.Id] = reservering;
         }
 
         public void UpdateCampingPlaatsReservering(CampingPlaatsReservering reservering)
@@ -239,161 +226,18 @@ namespace CampingSystem
                     command.ExecuteNonQuery();
                 }
             }
+
+            campingPlaatsReserveringen.Remove(reservering.Id);
         }
 
-        public List<CampingPlaats> GetCampingPlaatsen()
+        public ICollection<CampingPlaats> GetCampingPlaatsen()
         {
-            List<CampingPlaats> plaatsen = new List<CampingPlaats>();
-
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-
-                using (SqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandText =
-                        "SELECT "
-                            + "R.ID, R.PlaatsID, R.AantalVolwassenen, R.AantalKinderenOnder7, R.AantalKinderenOnder12, R.AantalHonden, "
-                            + "P.ID, P.TypeID, P.Nummer, "
-                            + "T.ID "
-                        + "FROM "
-                            + "CampingPlaats as P "
-                        + "INNER JOIN "
-                             + "CampingPlaatsType as T on P.TypeID = T.ID "
-                        + "INNER JOIN "
-                             + "CampingPlaatsReservering as R on R.PlaatsID = P.ID "
-                        + "ORDER BY "
-                            // sorteer op omgekeerde volgorde van 1->x relaties
-                            // dan hoeft iedere entiteit enkel een keer te worden
-                            // gemaakt en niet later opgezocht
-                            + "T.ID, P.ID, R.ID";
-                    
-                    using (var reader = command.ExecuteReader())
-                    {
-                        CampingPlaatsType? type = null;
-                        CampingPlaats? plaats = null;
-                        CampingPlaatsReservering? reservering = null;
-                        
-                        while (reader.Read())
-                        {
-                            int reserveringId = reader.GetInt32(0);
-                            int aantalVolwassenen = reader.GetInt32(2);
-                            int aantalKinderenOnder7 = reader.GetInt32(3);
-                            int aantalKinderenOnder12 = reader.GetInt32(4);
-                            int aantalHonden = reader.GetInt32(5);
-                            int plaatsId = reader.GetInt32(6);
-                            int plaatsNummer = reader.GetInt32(8);
-                            int typeId = reader.GetInt32(9);
-
-                            if (type == null || type.Id != typeId)
-                            {
-                                type = new CampingPlaatsType()
-                                {
-                                    Id = typeId
-                                };
-                            }
-                            if (plaats == null || plaats.Id != plaatsId)
-                            {
-                                plaats = new CampingPlaats()
-                                {
-                                    Id = plaatsId,
-                                    Type = type,
-                                    Nummer = plaatsNummer
-                                };
-
-                                type.Plaatsen.Add(plaats);
-                                plaatsen.Add(plaats);
-                            }
-                            if (reservering == null || reservering.Id != reserveringId)
-                            {
-                                reservering = new CampingPlaatsReservering()
-                                {
-                                    Id = reserveringId,
-                                    Plaats = plaats,
-                                    AantalVolwassenen = aantalVolwassenen,
-                                    AantalKinderenOnder7 = aantalKinderenOnder7,
-                                    AantalKinderenOnder12 = aantalKinderenOnder12,
-                                    AantalHonden = aantalHonden
-                                };
-
-                                plaats.Reserveringen.Add(reservering);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return plaatsen;
+            return campingPlaatsen.Values;
         }
 
         public CampingPlaats? GetCampingPlaats(int id)
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-
-                using (SqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandText =
-                        "SELECT "
-                            + "R.ID, R.PlaatsID, R.AantalVolwassenen, R.AantalKinderenOnder7, R.AantalKinderenOnder12, R.AantalHonden, "
-                            + "P.ID, P.TypeID, P.Nummer, "
-                            + "T.ID "
-                        + "FROM "
-                            + "CampingPlaats as P "
-                        + "INNER JOIN "
-                             + "CampingPlaatsType as T on P.TypeID = T.ID "
-                        + "INNER JOIN "
-                             + "CampingPlaatsReservering as R on R.PlaatsID = P.ID "
-                        + "WHERE "
-                            + "P.ID = @id";
-                    command.Parameters.AddWithValue("@id", id);
-                    
-                    using (var reader = command.ExecuteReader())
-                    {
-                        if (!reader.Read())
-                        {
-                            return null;
-                        }
-                        else
-                        {
-                            int reserveringId = reader.GetInt32(0);
-                            int aantalVolwassenen = reader.GetInt32(2);
-                            int aantalKinderenOnder7 = reader.GetInt32(3);
-                            int aantalKinderenOnder12 = reader.GetInt32(4);
-                            int aantalHonden = reader.GetInt32(5);
-                            int plaatsId = reader.GetInt32(6);
-                            int plaatsNummer = reader.GetInt32(8);
-                            int typeId = reader.GetInt32(9);
-
-                            CampingPlaatsType type = new CampingPlaatsType()
-                            {
-                                Id = typeId
-                            };
-                            CampingPlaats plaats = new CampingPlaats()
-                            {
-                                Id = plaatsId,
-                                Type = type,
-                                Nummer = plaatsNummer
-                            };
-                            CampingPlaatsReservering reservering = new CampingPlaatsReservering()
-                            {
-                                Id = reserveringId,
-                                Plaats = plaats,
-                                AantalVolwassenen = aantalVolwassenen,
-                                AantalKinderenOnder7 = aantalKinderenOnder7,
-                                AantalKinderenOnder12 = aantalKinderenOnder12,
-                                AantalHonden = aantalHonden
-                            };
-
-                            type.Plaatsen.Add(plaats);
-                            plaats.Reserveringen.Add(reservering);
-
-                            return plaats;
-                        }
-                    }
-                }
-            }
+            return campingPlaatsen.GetValueOrDefault(id);
         }
 
         public void CreateCampingPlaats(CampingPlaats plaats)
@@ -415,6 +259,8 @@ namespace CampingSystem
                     command.ExecuteNonQuery();
                 }
             }
+
+            campingPlaatsen[plaats.Id] = plaats;
         }
 
         public void UpdateCampingPlaats(CampingPlaats plaats)
@@ -460,162 +306,18 @@ namespace CampingSystem
                     command.ExecuteNonQuery();
                 }
             }
+
+            campingPlaatsen.Remove(plaats.Id);
         }
 
-        public List<CampingPlaatsType> GetCampingPlaatsTypen()
+        public ICollection<CampingPlaatsType> GetCampingPlaatsTypen()
         {
-            List<CampingPlaatsType> typen = new List<CampingPlaatsType>();
-
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-
-                using (SqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandText =
-                        "SELECT "
-                            + "R.ID, R.PlaatsID, R.AantalVolwassenen, R.AantalKinderenOnder7, R.AantalKinderenOnder12, R.AantalHonden, "
-                            + "P.ID, P.TypeID, P.Nummer, "
-                            + "T.ID "
-                        + "FROM "
-                            + "CampingPlaatsType as T "
-                        + "INNER JOIN "
-                             + "CampingPlaats as P on P.TypeID = T.ID "
-                        + "INNER JOIN "
-                             + "CampingPlaatsReservering as R on R.PlaatsID = P.ID "
-                        + "ORDER BY "
-                            // sorteer op omgekeerde volgorde van 1->x relaties
-                            // dan hoeft iedere entiteit enkel een keer te worden
-                            // gemaakt en niet later opgezocht
-                            + "T.ID, P.ID, R.ID";
-                    
-                    using (var reader = command.ExecuteReader())
-                    {
-                        CampingPlaatsType? type = null;
-                        CampingPlaats? plaats = null;
-                        CampingPlaatsReservering? reservering = null;
-                        
-                        while (reader.Read())
-                        {
-                            int reserveringId = reader.GetInt32(0);
-                            int aantalVolwassenen = reader.GetInt32(2);
-                            int aantalKinderenOnder7 = reader.GetInt32(3);
-                            int aantalKinderenOnder12 = reader.GetInt32(4);
-                            int aantalHonden = reader.GetInt32(5);
-                            int plaatsId = reader.GetInt32(6);
-                            int plaatsNummer = reader.GetInt32(8);
-                            int typeId = reader.GetInt32(9);
-
-                            if (type == null || type.Id != typeId)
-                            {
-                                type = new CampingPlaatsType()
-                                {
-                                    Id = typeId
-                                };
-
-                                typen.Add(type);
-                            }
-                            if (plaats == null || plaats.Id != plaatsId)
-                            {
-                                plaats = new CampingPlaats()
-                                {
-                                    Id = plaatsId,
-                                    Type = type,
-                                    Nummer = plaatsNummer
-                                };
-
-                                type.Plaatsen.Add(plaats);
-                            }
-                            if (reservering == null || reservering.Id != reserveringId)
-                            {
-                                reservering = new CampingPlaatsReservering()
-                                {
-                                    Id = reserveringId,
-                                    Plaats = plaats,
-                                    AantalVolwassenen = aantalVolwassenen,
-                                    AantalKinderenOnder7 = aantalKinderenOnder7,
-                                    AantalKinderenOnder12 = aantalKinderenOnder12,
-                                    AantalHonden = aantalHonden
-                                };
-
-                                plaats.Reserveringen.Add(reservering);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return typen;
+            return campingPlaatsTypen.Values;
         }
 
         public CampingPlaatsType? GetCampingPlaatsType(int id)
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-
-                using (SqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandText =
-                        "SELECT "
-                            + "R.ID, R.PlaatsID, R.AantalVolwassenen, R.AantalKinderenOnder7, R.AantalKinderenOnder12, R.AantalHonden, "
-                            + "P.ID, P.TypeID, P.Nummer, "
-                            + "T.ID "
-                        + "FROM "
-                            + "CampingPlaatsType as T "
-                        + "INNER JOIN "
-                             + "CampingPlaats as P on P.TypeID = T.ID "
-                        + "INNER JOIN "
-                             + "CampingPlaatsReservering as R on R.PlaatsID = P.ID "
-                        + "WHERE "
-                            + "T.ID = @id";
-                    command.Parameters.AddWithValue("@id", id);
-                    
-                    using (var reader = command.ExecuteReader())
-                    {
-                        if (!reader.Read())
-                        {
-                            return null;
-                        }
-                        else
-                        {
-                            int reserveringId = reader.GetInt32(0);
-                            int aantalVolwassenen = reader.GetInt32(2);
-                            int aantalKinderenOnder7 = reader.GetInt32(3);
-                            int aantalKinderenOnder12 = reader.GetInt32(4);
-                            int aantalHonden = reader.GetInt32(5);
-                            int plaatsId = reader.GetInt32(6);
-                            int plaatsNummer = reader.GetInt32(8);
-                            int typeId = reader.GetInt32(9);
-
-                            CampingPlaatsType type = new CampingPlaatsType()
-                            {
-                                Id = typeId
-                            };
-                            CampingPlaats plaats = new CampingPlaats()
-                            {
-                                Id = plaatsId,
-                                Type = type,
-                                Nummer = plaatsNummer
-                            };
-                            CampingPlaatsReservering reservering = new CampingPlaatsReservering()
-                            {
-                                Id = reserveringId,
-                                Plaats = plaats,
-                                AantalVolwassenen = aantalVolwassenen,
-                                AantalKinderenOnder7 = aantalKinderenOnder7,
-                                AantalKinderenOnder12 = aantalKinderenOnder12,
-                                AantalHonden = aantalHonden
-                            };
-
-                            type.Plaatsen.Add(plaats);
-                            plaats.Reserveringen.Add(reservering);
-
-                            return type;
-                        }
-                    }
-                }
-            }
+            return campingPlaatsTypen.GetValueOrDefault(id);
         }
 
         public void CreateCampingPlaatsType(CampingPlaatsType type)
@@ -634,17 +336,19 @@ namespace CampingSystem
                     command.ExecuteNonQuery();
                 }
             }
+
+            campingPlaatsTypen[type.Id] = type;
         }
 
         public void UpdateCampingPlaatsType(CampingPlaatsType type)
         {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
+            /*using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
 
                 using (SqlCommand command = connection.CreateCommand())
                 {
-                    /*command.CommandText =
+                    command.CommandText =
                         "UPDATE "
                             + "CampingPlaatsType "
                         + "SET "
@@ -652,9 +356,9 @@ namespace CampingSystem
                             + "ID = @id";
                     command.Parameters.AddWithValue("@id", type.Id);
 
-                    command.ExecuteNonQuery();*/
+                    command.ExecuteNonQuery();
                 }
-            }
+            }*/
         }
 
         public void DeleteCampingPlaatsType(CampingPlaatsType type)
@@ -675,6 +379,8 @@ namespace CampingSystem
                     command.ExecuteNonQuery();
                 }
             }
+
+            campingPlaatsTypen.Remove(type.Id);
         }
     }
 }

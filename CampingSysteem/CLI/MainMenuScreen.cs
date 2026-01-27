@@ -16,7 +16,7 @@ namespace CampingSystem
         private void ToonCampingPlaatsTypen()
         {
             DAL dal = new DAL();
-            List<CampingPlaatsType> typen = dal.GetCampingPlaatsTypen();
+            ICollection<CampingPlaatsType> typen = dal.GetCampingPlaatsTypen();
 
             foreach (CampingPlaatsType type in typen)
             {
@@ -29,7 +29,7 @@ namespace CampingSystem
         private void ToonCampingPlaatsen()
         {
             DAL dal = new DAL();
-            List<CampingPlaats> plaatsen = dal.GetCampingPlaatsen();
+            ICollection<CampingPlaats> plaatsen = dal.GetCampingPlaatsen();
 
             foreach (CampingPlaats plaats in plaatsen)
             {
@@ -42,7 +42,7 @@ namespace CampingSystem
         private void ToonCampingPlaatsReserveringen()
         {
             DAL dal = new DAL();
-            List<CampingPlaatsReservering> reserveringen = dal.GetCampingPlaatsReserveringen();
+            ICollection<CampingPlaatsReservering> reserveringen = dal.GetCampingPlaatsReserveringen();
 
             foreach (CampingPlaatsReservering reservering in reserveringen)
             {

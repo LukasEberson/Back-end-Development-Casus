@@ -49,4 +49,5 @@ nunit-*.xml
 
 # visual studio
 .vs/
+*.user
 
