@@ -20,5 +20,6 @@ namespace CampingSystem
         public int TariefKinderenOnder12 { get; set; }
         public int TariefHonden { get; set; }
         public int TariefElectriciteit { get; set; }
+        public List<CampingPlaatsReservering> Reserveringen { get; set; } = [];
     }
 }

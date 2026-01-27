@@ -3,7 +3,9 @@ namespace CampingSystem
     public class CampingPlaatsReservering
     {
         public int Id { get; set; }
+        public CampingReservering? Reservering { get; set; }
         public CampingPlaats? Plaats { get; set; }
+        public CampingPlaatsTarieven? Tarieven { get; set; }
         public int AantalVolwassenen { get; set; }
         public int AantalKinderenOnder7 { get; set; }
         public int AantalKinderenOnder12 { get; set; }

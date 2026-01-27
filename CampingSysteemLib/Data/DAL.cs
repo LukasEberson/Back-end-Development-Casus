@@ -35,9 +35,9 @@ namespace CampingSystem
             return reader.IsDBNull(column) ? "" : reader.GetString(column).Trim();
         }
 
-        private DateTime? parseDate(SqlDataReader reader, int column)
+        private DateTime parseDate(SqlDataReader reader, int column)
         {
-            return reader.IsDBNull(column) ? null : reader.GetDateTime(column);
+            return reader.IsDBNull(column) ? DateTime.MinValue : reader.GetDateTime(column);
         }
 
         private bool parseBool(SqlDataReader reader, int column)
@@ -59,9 +59,12 @@ namespace CampingSystem
                     // 1 sql command ipv meerdere
                     command.CommandText =
                         "SELECT "
-                            + "R.ID, R.PlaatsID, R.AantalVolwassenen, R.AantalKinderenOnder7, R.AantalKinderenOnder12, R.AantalHonden, "
+                            + "R.ID, R.PlaatsID, R.ReserveringID, R.TarievenID, R.AantalVolwassenen, R.AantalKinderenOnder7, R.AantalKinderenOnder12, R.AantalHonden, "
                             + "P.ID, P.TypeID, P.Nummer, "
-                            + "T.ID "
+                            + "T.ID, "
+                            + "CR.ID, CR.RekeningID, CR.Naam, CR.Emailadres, CR.Telefoonnummer, CR.BeginDatum, CR.EindDatum, "
+                            + "RK.ID, RK.ToeristenBelasting, RK.Korting, RK.Betaald, "
+                            + "PT.ID, PT.GeldingVan, PT.GeldigTot, PT.TariefVolwassenen, PT.TariefKinderenOnder7, PT.TariefKinderenOnder12, PT.TariefHonden, PT.TariefElectriciteit "
                         + "FROM "
                             + "CampingPlaatsReservering as R "
                         // gebruik right joins zodat ook entiteiten waar de relatie
@@ -70,11 +73,17 @@ namespace CampingSystem
                              + "CampingPlaats as P on R.PlaatsID = P.ID "
                         + "RIGHT JOIN "
                              + "CampingPlaatsType as T on P.TypeID = T.ID "
+                        + "RIGHT JOIN "
+                            + "CampingReservering as CR on R.ReserveringID = CR.ID "
+                        + "RIGHT JOIN "
+                            + "CampingRekening as RK on CR.RekeningID = RK.ID "
+                        + "RIGHT JOIN "
+                            + "CampingPlaatsTarieven as PT on R.TatievenID = PT.ID "
                         + "ORDER BY "
                             // sorteer op omgekeerde volgorde van 1->x relaties
                             // dan hoeft iedere entiteit enkel een keer te worden
                             // gemaakt en niet later opgezocht
-                            + "T.ID, P.ID, R.ID";
+                            + "T.ID, P.ID, RK.ID, CR.ID, PT, R.ID";
 
 
 
@@ -82,18 +91,19 @@ namespace CampingSystem
                     {
                         CampingPlaatsType? type = null;
                         CampingPlaats? plaats = null;
-                        CampingPlaatsReservering? reservering = null;
+                        CampingPlaatsReservering? plaatsReservering = null;
+                        CampingReservering? reservering = null;
+                        CampingRekening? rekening = null;
+                        CampingPlaatsTarieven? tarieven = null;
 
                         while (reader.Read())
                         {
-                            int reserveringId = parseInt(reader, 0);
-                            int aantalVolwassenen = parseInt(reader, 2);
-                            int aantalKinderenOnder7 = parseInt(reader, 3);
-                            int aantalKinderenOnder12 = parseInt(reader, 4);
-                            int aantalHonden = parseInt(reader, 5);
-                            int plaatsId = parseInt(reader, 6);
-                            int plaatsNummer = parseInt(reader, 8);
-                            int typeId = parseInt(reader, 9);
+                            int plaatsReserveringId = parseInt(reader, 0);
+                            int plaatsId = parseInt(reader, 8);
+                            int typeId = parseInt(reader, 11);
+                            int reserveringId = parseInt(reader, 12);
+                            int rekeningId = parseInt(reader, 19);
+                            int tarievenId = parseInt(reader, 23);
 
                             if (type == null || type.Id != typeId)
                             {
@@ -119,11 +129,14 @@ namespace CampingSystem
                                 }
                                 else
                                 {
+                                    int nummer = parseInt(reader, 10);
+
+                                    // type aflezen VOOR plaats!
                                     plaats = new CampingPlaats()
                                     {
                                         Id = plaatsId,
                                         Type = type,
-                                        Nummer = plaatsNummer
+                                        Nummer = nummer
                                     };
 
                                     campingPlaatsen.Add(plaatsId, plaats);
@@ -131,6 +144,29 @@ namespace CampingSystem
                                     {
                                         type.Plaatsen.Add(plaats);
                                     }
+                                }
+                            }
+                            if (rekening == null || rekening.Id != rekeningId)
+                            {
+                                if (rekeningId == -1)
+                                {
+                                    rekening = null;
+                                }
+                                else
+                                {
+                                    int toeristenBelasting = parseInt(reader, 20);
+                                    int korting = parseInt(reader, 21);
+                                    bool betaald = parseBool(reader, 22);
+
+                                    rekening = new CampingRekening()
+                                    {
+                                        Id = rekeningId,
+                                        ToeristenBelasting = toeristenBelasting,
+                                        Korting = korting,
+                                        Betaald = betaald
+                                    };
+
+                                    campingRekeningen.Add(rekeningId, rekening);
                                 }
                             }
                             if (reservering == null || reservering.Id != reserveringId)
@@ -141,113 +177,111 @@ namespace CampingSystem
                                 }
                                 else
                                 {
-                                    reservering = new CampingPlaatsReservering()
+                                    string naam = parseString(reader, 14);
+                                    string emailadres = parseString(reader, 15);
+                                    string telefoonnummer = parseString(reader, 16);
+                                    DateTime beginDatum = parseDate(reader, 17);
+                                    DateTime eindDatum = parseDate(reader, 18);
+
+                                    // rekening aflezen VOOR reservering!
+                                    reservering = new CampingReservering()
                                     {
                                         Id = reserveringId,
+                                        Rekening = rekening,
+                                        Naam = naam,
+                                        Emailadres = emailadres,
+                                        Telefoonnummer = telefoonnummer,
+                                        BeginDatum = beginDatum,
+                                        EindDatum = eindDatum
+                                    };
+
+                                    campingReserveringen.Add(reserveringId, reservering);
+                                    if (rekening != null)
+                                    {
+                                        rekening.Reserveringen.Add(reservering);
+                                    }
+                                }
+                            }
+                            if (tarieven == null || tarieven.Id != tarievenId)
+                            {
+                                if (tarievenId == -1)
+                                {
+                                    tarieven = null;
+                                }
+                                else
+                                {
+                                    DateTime? geldigVan = parseDate(reader, 24);
+                                    DateTime? geldigTot = parseDate(reader, 25);
+                                    int tariefVolwassenen = parseInt(reader, 26);
+                                    int tariefKinderenOnder7 = parseInt(reader, 27);
+                                    int tariefKinderenOnder12 = parseInt(reader, 28);
+                                    int tariefHonden = parseInt(reader, 29);
+                                    int tariefElectriciteit = parseInt(reader, 30);
+
+                                    // type aflezen VOOR tarieven!
+                                    tarieven = new CampingPlaatsTarieven()
+                                    {
+                                        Id = tarievenId,
+                                        Type = type,
+                                        GeldigVan = geldigVan,
+                                        GeldigTot = geldigTot,
+                                        TariefVolwassenen = tariefVolwassenen,
+                                        TariefKinderenOnder7 = tariefKinderenOnder7,
+                                        TariefKinderenOnder12 = tariefKinderenOnder12,
+                                        TariefHonden = tariefHonden,
+                                        TariefElectriciteit = tariefElectriciteit
+                                    };
+
+                                    campingPlaatsTarieven.Add(tarievenId, tarieven);
+                                    if (type != null)
+                                    {
+                                        type.Tarieven.Add(tarieven);
+                                    }
+                                }
+                            }
+                            if (plaatsReservering == null || plaatsReservering.Id != plaatsReserveringId)
+                            {
+                                if (plaatsReserveringId == -1)
+                                {
+                                    plaatsReservering = null;
+                                }
+                                else
+                                {
+                                    int aantalVolwassenen = parseInt(reader, 4);
+                                    int aantalKinderenOnder7 = parseInt(reader, 5);
+                                    int aantalKinderenOnder12 = parseInt(reader, 6);
+                                    int aantalHonden = parseInt(reader, 7);
+
+                                    // plaats, reservering, en tarieven aflezen VOOR plaats reservering!
+                                    plaatsReservering = new CampingPlaatsReservering()
+                                    {
+                                        Id = plaatsReserveringId,
+                                        Reservering = reservering,
                                         Plaats = plaats,
+                                        Tarieven = tarieven,
                                         AantalVolwassenen = aantalVolwassenen,
                                         AantalKinderenOnder7 = aantalKinderenOnder7,
                                         AantalKinderenOnder12 = aantalKinderenOnder12,
                                         AantalHonden = aantalHonden
                                     };
 
-                                    campingPlaatsReserveringen.Add(reserveringId, reservering);
+                                    campingPlaatsReserveringen.Add(plaatsReserveringId, plaatsReservering);
                                     if (plaats != null)
                                     {
-                                        plaats.Reserveringen.Add(reservering);
+                                        plaats.Reserveringen.Add(plaatsReservering);
+                                    }
+                                    if (reservering != null)
+                                    {
+                                        reservering.PlaatsReserveringen.Add(plaatsReservering);
+                                    }
+                                    if (tarieven != null)
+                                    {
+                                        tarieven.Reserveringen.Add(plaatsReservering);
                                     }
                                 }
                             }
                         }
                     }
-
-                    using (SqlCommand cmdRek = connection.CreateCommand())
-                    {
-                        cmdRek.CommandText =
-                            "SELECT ID, ToeristenBelasting, Korting, Betaald " +
-                            "FROM CampingRekening ORDER BY ID";
-
-                        using (var reader = cmdRek.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                int id = parseInt(reader, 0);
-                                if (id == -1) continue;
-
-                                var rekening = new CampingRekening
-                                {
-                                    Id = id,
-                                    ToeristenBelasting = parseInt(reader, 1) == -1 ? 0 : parseInt(reader, 1),
-                                    Korting = parseInt(reader, 2) == -1 ? 0 : parseInt(reader, 2),
-                                    Betaald = parseBool(reader, 3)
-                                };
-
-                                campingRekeningen[id] = rekening;
-                            }
-                        }
-                    }
-                    using (SqlCommand cmdRes = connection.CreateCommand())
-                    {
-                        cmdRes.CommandText =
-                            "SELECT ID, RekeningID, Naam, Emailadres, Telefoonnummer, BeginDatum, EindDatum " +
-                            "FROM CampingReservering ORDER BY ID";
-
-                        using (var reader = cmdRes.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                int id = parseInt(reader, 0);
-                                int rekeningId = parseInt(reader, 1);
-                                if (id == -1) continue;
-
-                                var reservering = new CampingReservering
-                                {
-                                    Id = id,
-                                    Rekening = (rekeningId == -1) ? null : campingRekeningen.GetValueOrDefault(rekeningId),
-                                    Naam = parseString(reader, 2),
-                                    Emailadres = parseString(reader, 3),
-                                    Telefoonnummer = parseString(reader, 4),
-                                    BeginDatum = parseDate(reader, 5),
-                                    EindDatum = parseDate(reader, 6)
-                                };
-
-                                campingReserveringen[id] = reservering;
-                            }
-                        }
-                    }
-
-                    using (SqlCommand cmdTar = connection.CreateCommand())
-                    {
-                        cmdTar.CommandText =
-                            "SELECT ID, TypeID, GeldigVan, GeldigTot, TariefVolwassenen, TafiefKinderenOnder7, TariefKinderenOnder12, TariefHonden, TariefElectriciteit " +
-                            "FROM CampingPlaatsTarieven ORDER BY ID";
-
-                        using (var reader = cmdTar.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                int id = parseInt(reader, 0);
-                                int typeId = parseInt(reader, 1);
-                                if (id == -1) continue;
-
-                                var tarieven = new CampingPlaatsTarieven
-                                {
-                                    Id = id,
-                                    Type = (typeId == -1) ? null : campingPlaatsTypen.GetValueOrDefault(typeId),
-                                    GeldigVan = parseDate(reader, 2),
-                                    GeldigTot = parseDate(reader, 3),
-                                    TariefVolwassenen = parseInt(reader, 4) == -1 ? 0 : parseInt(reader, 4),
-                                    TariefKinderenOnder7 = parseInt(reader, 5) == -1 ? 0 : parseInt(reader, 5),
-                                    TariefKinderenOnder12 = parseInt(reader, 6) == -1 ? 0 : parseInt(reader, 6),
-                                    TariefHonden = parseInt(reader, 7) == -1 ? 0 : parseInt(reader, 7),
-                                    TariefElectriciteit = parseInt(reader, 8) == -1 ? 0 : parseInt(reader, 8)
-                                };
-
-                                campingPlaatsTarieven[id] = tarieven;
-                            }
-                        }
-                    }
-
                 }
             }
         }

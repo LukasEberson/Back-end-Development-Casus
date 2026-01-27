@@ -19,5 +19,6 @@ namespace CampingSystem
 
         public DateTime? BeginDatum { get; set; }
         public DateTime? EindDatum { get; set; }
+        public List<CampingPlaatsReservering> PlaatsReserveringen { get; set; } = [];
     }
 }

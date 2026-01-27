@@ -4,6 +4,7 @@ namespace CampingSystem
     {
         public int Id { get; set; }
         public List<CampingPlaats> Plaatsen { get; set; } = [];
+        public List<CampingPlaatsTarieven> Tarieven { get; set; } = [];
 
         public void PrettyPrint()
         {

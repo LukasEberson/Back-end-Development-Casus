@@ -12,5 +12,6 @@ namespace CampingSystem
         public int ToeristenBelasting { get; set; }
         public int Korting { get; set; }
         public bool Betaald { get; set; }
+        public List<CampingReservering> Reserveringen { get; set; } = [];
     }
 }
