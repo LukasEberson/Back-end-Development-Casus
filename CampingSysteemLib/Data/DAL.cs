@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using CampingSystem;
+using Microsoft.Data.SqlClient;
 
 namespace CampingSystem
 {
@@ -9,10 +10,14 @@ namespace CampingSystem
         public Dictionary<int, CampingPlaatsReservering> campingPlaatsReserveringen = [];
         public Dictionary<int, CampingPlaats> campingPlaatsen = [];
         public Dictionary<int, CampingPlaatsType> campingPlaatsTypen = [];
+        public Dictionary<int, CampingRekening> campingRekeningen = [];
+        public Dictionary<int, CampingReservering> campingReserveringen = [];
+        public Dictionary<int, CampingPlaatsTarieven> campingPlaatsTarieven = [];
+
 
         public DAL()
         {
-            _connectionString = "<pleur 'm hiero>";
+            _connectionString = "Server=(localdb)\\MSSQLLocalDB;Database=CampingSysteemDb;Trusted_Connection=True;TrustServerCertificate=True;";
 
             if (_connectionString != null)
             {
@@ -24,6 +29,22 @@ namespace CampingSystem
         {
             return reader.IsDBNull(column) ? -1 : reader.GetInt32(column);
         }
+
+        private string parseString(SqlDataReader reader, int column)
+        {
+            return reader.IsDBNull(column) ? "" : reader.GetString(column).Trim();
+        }
+
+        private DateTime? parseDate(SqlDataReader reader, int column)
+        {
+            return reader.IsDBNull(column) ? null : reader.GetDateTime(column);
+        }
+
+        private bool parseBool(SqlDataReader reader, int column)
+        {
+            return !reader.IsDBNull(column) && reader.GetBoolean(column);
+        }
+
 
         private void fetch()
         {
@@ -54,6 +75,8 @@ namespace CampingSystem
                             // dan hoeft iedere entiteit enkel een keer te worden
                             // gemaakt en niet later opgezocht
                             + "T.ID, P.ID, R.ID";
+
+
 
                     using (var reader = command.ExecuteReader())
                     {
@@ -137,6 +160,94 @@ namespace CampingSystem
                             }
                         }
                     }
+
+                    using (SqlCommand cmdRek = connection.CreateCommand())
+                    {
+                        cmdRek.CommandText =
+                            "SELECT ID, ToeristenBelasting, Korting, Betaald " +
+                            "FROM CampingRekening ORDER BY ID";
+
+                        using (var reader = cmdRek.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int id = parseInt(reader, 0);
+                                if (id == -1) continue;
+
+                                var rekening = new CampingRekening
+                                {
+                                    Id = id,
+                                    ToeristenBelasting = parseInt(reader, 1) == -1 ? 0 : parseInt(reader, 1),
+                                    Korting = parseInt(reader, 2) == -1 ? 0 : parseInt(reader, 2),
+                                    Betaald = parseBool(reader, 3)
+                                };
+
+                                campingRekeningen[id] = rekening;
+                            }
+                        }
+                    }
+                    using (SqlCommand cmdRes = connection.CreateCommand())
+                    {
+                        cmdRes.CommandText =
+                            "SELECT ID, RekeningID, Naam, Emailadres, Telefoonnummer, BeginDatum, EindDatum " +
+                            "FROM CampingReservering ORDER BY ID";
+
+                        using (var reader = cmdRes.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int id = parseInt(reader, 0);
+                                int rekeningId = parseInt(reader, 1);
+                                if (id == -1) continue;
+
+                                var reservering = new CampingReservering
+                                {
+                                    Id = id,
+                                    Rekening = (rekeningId == -1) ? null : campingRekeningen.GetValueOrDefault(rekeningId),
+                                    Naam = parseString(reader, 2),
+                                    Emailadres = parseString(reader, 3),
+                                    Telefoonnummer = parseString(reader, 4),
+                                    BeginDatum = parseDate(reader, 5),
+                                    EindDatum = parseDate(reader, 6)
+                                };
+
+                                campingReserveringen[id] = reservering;
+                            }
+                        }
+                    }
+
+                    using (SqlCommand cmdTar = connection.CreateCommand())
+                    {
+                        cmdTar.CommandText =
+                            "SELECT ID, TypeID, GeldigVan, GeldigTot, TariefVolwassenen, TafiefKinderenOnder7, TariefKinderenOnder12, TariefHonden, TariefElectriciteit " +
+                            "FROM CampingPlaatsTarieven ORDER BY ID";
+
+                        using (var reader = cmdTar.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int id = parseInt(reader, 0);
+                                int typeId = parseInt(reader, 1);
+                                if (id == -1) continue;
+
+                                var tarieven = new CampingPlaatsTarieven
+                                {
+                                    Id = id,
+                                    Type = (typeId == -1) ? null : campingPlaatsTypen.GetValueOrDefault(typeId),
+                                    GeldigVan = parseDate(reader, 2),
+                                    GeldigTot = parseDate(reader, 3),
+                                    TariefVolwassenen = parseInt(reader, 4) == -1 ? 0 : parseInt(reader, 4),
+                                    TariefKinderenOnder7 = parseInt(reader, 5) == -1 ? 0 : parseInt(reader, 5),
+                                    TariefKinderenOnder12 = parseInt(reader, 6) == -1 ? 0 : parseInt(reader, 6),
+                                    TariefHonden = parseInt(reader, 7) == -1 ? 0 : parseInt(reader, 7),
+                                    TariefElectriciteit = parseInt(reader, 8) == -1 ? 0 : parseInt(reader, 8)
+                                };
+
+                                campingPlaatsTarieven[id] = tarieven;
+                            }
+                        }
+                    }
+
                 }
             }
         }
@@ -284,6 +395,7 @@ namespace CampingSystem
                     command.Parameters.AddWithValue("@n", plaats.Nummer);
 
                     command.ExecuteNonQuery();
+                    campingPlaatsen[plaats.Id] = plaats;
                 }
             }
         }
@@ -381,6 +493,192 @@ namespace CampingSystem
             }
 
             campingPlaatsTypen.Remove(type.Id);
+        }
+
+        public ICollection<CampingPlaatsTarieven> GetCampingPlaatsTarieven() => campingPlaatsTarieven.Values;
+        public CampingPlaatsTarieven? GetCampingPlaatsTarieven(int id) => campingPlaatsTarieven.GetValueOrDefault(id);
+
+        public void CreateCampingPlaatsTarieven(CampingPlaatsTarieven t)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+
+            command.CommandText =
+                "INSERT INTO CampingPlaatsTarieven (TypeID, GeldigVan, GeldigTot, TariefVolwassenen, TafiefKinderenOnder7, TariefKinderenOnder12, TariefHonden, TariefElectriciteit) " +
+                "VALUES (@typeId, @van, @tot, @tv, @tk7, @tk12, @th, @te); " +
+                "SELECT CAST(SCOPE_IDENTITY() as int);";
+
+            command.Parameters.AddWithValue("@typeId", (object?)t.Type?.Id ?? DBNull.Value);
+            command.Parameters.AddWithValue("@van", (object?)t.GeldigVan ?? DBNull.Value);
+            command.Parameters.AddWithValue("@tot", (object?)t.GeldigTot ?? DBNull.Value);
+            command.Parameters.AddWithValue("@tv", t.TariefVolwassenen);
+            command.Parameters.AddWithValue("@tk7", t.TariefKinderenOnder7);
+            command.Parameters.AddWithValue("@tk12", t.TariefKinderenOnder12);
+            command.Parameters.AddWithValue("@th", t.TariefHonden);
+            command.Parameters.AddWithValue("@te", t.TariefElectriciteit);
+
+            t.Id = (int)command.ExecuteScalar();
+            campingPlaatsTarieven[t.Id] = t;
+        }
+
+        public void UpdateCampingPlaatsTarieven(CampingPlaatsTarieven t)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+
+            command.CommandText =
+                "UPDATE CampingPlaatsTarieven SET " +
+                "TypeID=@typeId, GeldigVan=@van, GeldigTot=@tot, TariefVolwassenen=@tv, TafiefKinderenOnder7=@tk7, TariefKinderenOnder12=@tk12, TariefHonden=@th, TariefElectriciteit=@te " +
+                "WHERE ID=@id";
+
+            command.Parameters.AddWithValue("@id", t.Id);
+            command.Parameters.AddWithValue("@typeId", (object?)t.Type?.Id ?? DBNull.Value);
+            command.Parameters.AddWithValue("@van", (object?)t.GeldigVan ?? DBNull.Value);
+            command.Parameters.AddWithValue("@tot", (object?)t.GeldigTot ?? DBNull.Value);
+            command.Parameters.AddWithValue("@tv", t.TariefVolwassenen);
+            command.Parameters.AddWithValue("@tk7", t.TariefKinderenOnder7);
+            command.Parameters.AddWithValue("@tk12", t.TariefKinderenOnder12);
+            command.Parameters.AddWithValue("@th", t.TariefHonden);
+            command.Parameters.AddWithValue("@te", t.TariefElectriciteit);
+
+            command.ExecuteNonQuery();
+        }
+
+        public void DeleteCampingPlaatsTarieven(int id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+
+            command.CommandText = "DELETE FROM CampingPlaatsTarieven WHERE ID=@id";
+            command.Parameters.AddWithValue("@id", id);
+            command.ExecuteNonQuery();
+
+            campingPlaatsTarieven.Remove(id);
+        }
+
+        public ICollection<CampingReservering> GetCampingReserveringen() => campingReserveringen.Values;
+        public CampingReservering? GetCampingReservering(int id) => campingReserveringen.GetValueOrDefault(id);
+
+        public void CreateCampingReservering(CampingReservering r)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+
+            command.CommandText =
+                "INSERT INTO CampingReservering (RekeningID, Naam, Emailadres, Telefoonnummer, BeginDatum, EindDatum) " +
+                "VALUES (@rekId, @naam, @email, @tel, @begin, @eind); " +
+                "SELECT CAST(SCOPE_IDENTITY() as int);";
+
+            command.Parameters.AddWithValue("@rekId", (object?)r.Rekening?.Id ?? DBNull.Value);
+            command.Parameters.AddWithValue("@naam", (object?)r.Naam ?? DBNull.Value);
+            command.Parameters.AddWithValue("@email", (object?)r.Emailadres ?? DBNull.Value);
+            command.Parameters.AddWithValue("@tel", (object?)r.Telefoonnummer ?? DBNull.Value);
+            command.Parameters.AddWithValue("@begin", (object?)r.BeginDatum ?? DBNull.Value);
+            command.Parameters.AddWithValue("@eind", (object?)r.EindDatum ?? DBNull.Value);
+
+            r.Id = (int)command.ExecuteScalar();
+            campingReserveringen[r.Id] = r;
+        }
+
+        public void UpdateCampingReservering(CampingReservering r)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+
+            command.CommandText =
+                "UPDATE CampingReservering SET " +
+                "RekeningID=@rekId, Naam=@naam, Emailadres=@email, Telefoonnummer=@tel, BeginDatum=@begin, EindDatum=@eind " +
+                "WHERE ID=@id";
+
+            command.Parameters.AddWithValue("@id", r.Id);
+            command.Parameters.AddWithValue("@rekId", (object?)r.Rekening?.Id ?? DBNull.Value);
+            command.Parameters.AddWithValue("@naam", (object?)r.Naam ?? DBNull.Value);
+            command.Parameters.AddWithValue("@email", (object?)r.Emailadres ?? DBNull.Value);
+            command.Parameters.AddWithValue("@tel", (object?)r.Telefoonnummer ?? DBNull.Value);
+            command.Parameters.AddWithValue("@begin", (object?)r.BeginDatum ?? DBNull.Value);
+            command.Parameters.AddWithValue("@eind", (object?)r.EindDatum ?? DBNull.Value);
+
+            command.ExecuteNonQuery();
+        }
+
+        public void DeleteCampingReservering(int id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+
+            command.CommandText = "DELETE FROM CampingReservering WHERE ID=@id";
+            command.Parameters.AddWithValue("@id", id);
+            command.ExecuteNonQuery();
+
+            campingReserveringen.Remove(id);
+        }
+
+        public ICollection<CampingRekening> GetCampingRekeningen()
+        {
+            return campingRekeningen.Values;
+        }
+
+        public CampingRekening? GetCampingRekening(int id)
+        {
+            return campingRekeningen.GetValueOrDefault(id);
+        }
+
+        public void CreateCampingRekening(CampingRekening r)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "INSERT INTO CampingRekening (ToeristenBelasting, Korting, Betaald) " +
+                "VALUES (@tb, @k, @b); " +
+                "SELECT CAST(SCOPE_IDENTITY() as int);";
+
+            command.Parameters.AddWithValue("@tb", r.ToeristenBelasting);
+            command.Parameters.AddWithValue("@k", r.Korting);
+            command.Parameters.AddWithValue("@b", r.Betaald);
+
+            r.Id = (int)command.ExecuteScalar();
+            campingRekeningen[r.Id] = r;
+        }
+
+        public void UpdateCampingRekening(CampingRekening r)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "UPDATE CampingRekening SET " +
+                "ToeristenBelasting=@tb, Korting=@k, Betaald=@b " +
+                "WHERE ID=@id";
+
+            command.Parameters.AddWithValue("@id", r.Id);
+            command.Parameters.AddWithValue("@tb", r.ToeristenBelasting);
+            command.Parameters.AddWithValue("@k", r.Korting);
+            command.Parameters.AddWithValue("@b", r.Betaald);
+
+            command.ExecuteNonQuery();
+            campingRekeningen[r.Id] = r;
+        }
+
+        public void DeleteCampingRekening(int id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM CampingRekening WHERE ID=@id";
+            command.Parameters.AddWithValue("@id", id);
+
+            command.ExecuteNonQuery();
+            campingRekeningen.Remove(id);
         }
     }
 }
