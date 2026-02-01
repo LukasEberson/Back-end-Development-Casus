@@ -33,7 +33,7 @@ namespace CampingSysteemAPI.Controllers
         public IActionResult Create([FromBody] CampingPlaatsReservering reservering)
         {
             if (reservering == null || reservering.Plaats == null || reservering.Plaats.Id <= 0)
-                return BadRequest("Plaats met geldige Id is verplicht.");
+                return BadRequest("Camping plaats reservering met geldig Id is verplicht.");
 
             dal.CreateCampingPlaatsReservering(reservering);
             return StatusCode(201);
@@ -45,7 +45,9 @@ namespace CampingSysteemAPI.Controllers
             var existing = dal.GetCampingPlaatsReservering(id);
             if (existing == null) return NotFound();
 
+            existing.Reservering = reservering.Reservering;
             existing.Plaats = reservering.Plaats;
+            existing.Tarieven = reservering.Tarieven;
             existing.AantalVolwassenen = reservering.AantalVolwassenen;
             existing.AantalKinderenOnder7 = reservering.AantalKinderenOnder7;
             existing.AantalKinderenOnder12 = reservering.AantalKinderenOnder12;
@@ -64,10 +66,5 @@ namespace CampingSysteemAPI.Controllers
             dal.DeleteCampingPlaatsReservering(existing);
             return NoContent();
         }
-
-
     }
-
-
-
 }

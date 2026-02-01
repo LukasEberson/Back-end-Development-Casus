@@ -1,5 +1,6 @@
 ﻿using CampingSystem;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CampingSysteemAPI.Controllers
 {
@@ -59,6 +60,7 @@ namespace CampingSysteemAPI.Controllers
         {
             var existing = dal.GetCampingReservering(id);
             if (existing == null) return NotFound();
+            if (!existing.PlaatsReserveringen.IsNullOrEmpty()) return BadRequest("Deze camping reservering is verbonden aan plaats reserveringen!");
 
             dal.DeleteCampingReservering(id);
             return NoContent();
