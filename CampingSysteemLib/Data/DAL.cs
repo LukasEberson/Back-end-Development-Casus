@@ -14,7 +14,6 @@ namespace CampingSystem
         public Dictionary<int, CampingReservering> campingReserveringen = [];
         public Dictionary<int, CampingPlaatsTarieven> campingPlaatsTarieven = [];
 
-
         public DAL()
         {
             _connectionString = "Server=(localdb)\\MSSQLLocalDB;Database=CampingSysteemDb;Trusted_Connection=True;TrustServerCertificate=True;";
@@ -145,9 +144,9 @@ namespace CampingSystem
                         // gebruik right joins zodat ook entiteiten waar de relatie
                         // leeg is opgehaald worden
                         + "RIGHT JOIN "
-                            + "CampingRekening as RK on CR.RekeningID = RK.ID "
+                            + "CampingRekening as RK on RS.RekeningID = RK.ID "
                         + "ORDER BY "
-                            + "RK.ID, CR.ID, R.ID";
+                            + "RK.ID, RS.ID";
 
 
 
@@ -237,6 +236,10 @@ namespace CampingSystem
                             + "CampingPlaatsReservering as R "
                         // gebruik right joins zodat ook entiteiten waar de relatie
                         // leeg is opgehaald worden
+                        + "RIGHT JOIN "
+                            + "CampingPlaats as P on R.PlaatsID = P.ID "
+                        + "RIGHT JOIN "
+                            + "CampingReservering as RS on R.ReserveringID = RS.ID "
                         + "RIGHT JOIN "
                             + "CampingPlaatsTarieven as PT on R.TarievenID = PT.ID "
                         + "RIGHT JOIN "
