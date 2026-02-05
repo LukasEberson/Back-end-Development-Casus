@@ -407,20 +407,39 @@ namespace CampingSystem
                 {
                     command.CommandText =
                         "INSERT INTO "
-                            + "CampingPlaatsReservering ( PlaatsID, AantalVolwassenen, AantalKinderenOnder7, AantalKinderenOnder12, AantalHonden ) "
+                            + "CampingPlaatsReservering ( ReserveringID, PlaatsID, TarievenID, AantalVolwassenen, AantalKinderenOnder7, AantalKinderenOnder12, AantalHonden ) "
                         + "VALUES "
-                            + "( @p, @av, @ako7, @ako12, @ah )";
+                            + "( @r, @p, @t, @av, @ako7, @ako12, @ah ); "
+                        + "SELECT CAST(SCOPE_IDENTITY() as int);";
+                    command.Parameters.AddWithValue("@r", reservering.Reservering?.Id);
                     command.Parameters.AddWithValue("@p", reservering.Plaats?.Id);
+                    command.Parameters.AddWithValue("@t", reservering.Tarieven?.Id);
                     command.Parameters.AddWithValue("@av", reservering.AantalVolwassenen);
                     command.Parameters.AddWithValue("@ako7", reservering.AantalKinderenOnder7);
                     command.Parameters.AddWithValue("@ako12", reservering.AantalKinderenOnder12);
                     command.Parameters.AddWithValue("@ah", reservering.AantalHonden);
 
-                    command.ExecuteNonQuery();
+                    reservering.Id = (int) command.ExecuteScalar();
                 }
             }
 
             campingPlaatsReserveringen[reservering.Id] = reservering;
+            // de relatie objecten zijn uit JSON geparset, vul met daadwerkelijke data
+            if (reservering.Reservering != null)
+            {
+                reservering.Reservering = campingReserveringen[reservering.Reservering.Id];
+                reservering.Reservering.PlaatsReserveringen.Add(reservering);
+            }
+            if (reservering.Plaats != null)
+            {
+                reservering.Plaats = campingPlaatsen[reservering.Plaats.Id];
+                reservering.Plaats.Reserveringen.Add(reservering);
+            }
+            if (reservering.Tarieven != null)
+            {
+                reservering.Tarieven = campingPlaatsTarieven[reservering.Tarieven.Id];
+                reservering.Tarieven.Reserveringen.Add(reservering);
+            }
         }
 
         public void UpdateCampingPlaatsReservering(CampingPlaatsReservering reservering)
@@ -452,6 +471,23 @@ namespace CampingSystem
                     command.ExecuteNonQuery();
                 }
             }
+
+            // de relatie objecten zijn uit JSON geparset, vul met daadwerkelijke data
+            if (reservering.Reservering != null)
+            {
+                reservering.Reservering = campingReserveringen[reservering.Reservering.Id];
+                reservering.Reservering.PlaatsReserveringen.Add(reservering);
+            }
+            if (reservering.Plaats != null)
+            {
+                reservering.Plaats = campingPlaatsen[reservering.Plaats.Id];
+                reservering.Plaats.Reserveringen.Add(reservering);
+            }
+            if (reservering.Tarieven != null)
+            {
+                reservering.Tarieven = campingPlaatsTarieven[reservering.Tarieven.Id];
+                reservering.Tarieven.Reserveringen.Add(reservering);
+            }
         }
 
         public void DeleteCampingPlaatsReservering(CampingPlaatsReservering reservering)
@@ -474,6 +510,7 @@ namespace CampingSystem
             }
 
             campingPlaatsReserveringen.Remove(reservering.Id);
+            // de relaties moeten al leeg zijn dus die hoeven niet geupdatet te worden
         }
 
         public ICollection<CampingPlaats> GetCampingPlaatsen()
@@ -498,15 +535,22 @@ namespace CampingSystem
                         "INSERT INTO "
                             + "CampingPlaats ( TypeID, Nummer ) "
                         + "VALUES "
-                            + " ( @t, @n )";
+                            + " ( @t, @n ); "
+                        + "SELECT CAST(SCOPE_IDENTITY() as int);";
                     command.Parameters.AddWithValue("@t", plaats.Type?.Id);
                     command.Parameters.AddWithValue("@n", plaats.Nummer);
 
-                    command.ExecuteNonQuery();
+                    plaats.Id = (int) command.ExecuteScalar();
                 }
             }
 
             campingPlaatsen[plaats.Id] = plaats;
+            // de relatie objecten zijn uit JSON geparset, vul met daadwerkelijke data
+            if (plaats.Type != null)
+            {
+                plaats.Type = campingPlaatsTypen[plaats.Type.Id];
+                plaats.Type.Plaatsen.Add(plaats);
+            }
         }
 
         public void UpdateCampingPlaats(CampingPlaats plaats)
@@ -530,8 +574,14 @@ namespace CampingSystem
                     command.Parameters.AddWithValue("@n", plaats.Nummer);
 
                     command.ExecuteNonQuery();
-                    campingPlaatsen[plaats.Id] = plaats;
                 }
+            }
+
+            // de relatie objecten zijn uit JSON geparset, vul met daadwerkelijke data
+            if (plaats.Type != null)
+            {
+                plaats.Type = campingPlaatsTypen[plaats.Type.Id];
+                plaats.Type.Plaatsen.Add(plaats);
             }
         }
 
@@ -555,6 +605,7 @@ namespace CampingSystem
             }
 
             campingPlaatsen.Remove(plaats.Id);
+            // de relaties moeten al leeg zijn dus die hoeven niet geupdatet te worden
         }
 
         public ICollection<CampingPlaatsType> GetCampingPlaatsTypen()
@@ -578,9 +629,10 @@ namespace CampingSystem
                     command.CommandText =
                         "INSERT INTO "
                             + "CampingPlaatsType "
-                        + "DEFAULT VALUES";
+                        + "DEFAULT VALUES; "
+                        + "SELECT CAST(SCOPE_IDENTITY() as int);";
 
-                    command.ExecuteNonQuery();
+                    type.Id = (int) command.ExecuteScalar();
                 }
             }
 
@@ -655,6 +707,12 @@ namespace CampingSystem
 
             t.Id = (int)command.ExecuteScalar();
             campingPlaatsTarieven[t.Id] = t;
+            // de relatie objecten zijn uit JSON geparset, vul met daadwerkelijke data
+            if (t.Type != null)
+            {
+                t.Type = campingPlaatsTypen[t.Type.Id];
+                t.Type.Tarieven.Add(t);
+            }
         }
 
         public void UpdateCampingPlaatsTarieven(CampingPlaatsTarieven t)
@@ -679,6 +737,12 @@ namespace CampingSystem
             command.Parameters.AddWithValue("@te", t.TariefElectriciteit);
 
             command.ExecuteNonQuery();
+            // de relatie objecten zijn uit JSON geparset, vul met daadwerkelijke data
+            if (t.Type != null)
+            {
+                t.Type = campingPlaatsTypen[t.Type.Id];
+                t.Type.Tarieven.Add(t);
+            }
         }
 
         public void DeleteCampingPlaatsTarieven(int id)
@@ -692,6 +756,7 @@ namespace CampingSystem
             command.ExecuteNonQuery();
 
             campingPlaatsTarieven.Remove(id);
+            // de relaties moeten al leeg zijn dus die hoeven niet geupdatet te worden
         }
 
         public ICollection<CampingReservering> GetCampingReserveringen() => campingReserveringen.Values;
@@ -717,6 +782,12 @@ namespace CampingSystem
 
             r.Id = (int)command.ExecuteScalar();
             campingReserveringen[r.Id] = r;
+            // de relatie objecten zijn uit JSON geparset, vul met daadwerkelijke data
+            if (r.Rekening != null)
+            {
+                r.Rekening = campingRekeningen[r.Rekening.Id];
+                r.Rekening.Reserveringen.Add(r);
+            }
         }
 
         public void UpdateCampingReservering(CampingReservering r)
@@ -739,6 +810,12 @@ namespace CampingSystem
             command.Parameters.AddWithValue("@eind", (object?)r.EindDatum ?? DBNull.Value);
 
             command.ExecuteNonQuery();
+            // de relatie objecten zijn uit JSON geparset, vul met daadwerkelijke data
+            if (r.Rekening != null)
+            {
+                r.Rekening = campingRekeningen[r.Rekening.Id];
+                r.Rekening.Reserveringen.Add(r);
+            }
         }
 
         public void DeleteCampingReservering(int id)
@@ -752,6 +829,7 @@ namespace CampingSystem
             command.ExecuteNonQuery();
 
             campingReserveringen.Remove(id);
+            // de relaties moeten al leeg zijn dus die hoeven niet geupdatet te worden
         }
 
         public ICollection<CampingRekening> GetCampingRekeningen()
