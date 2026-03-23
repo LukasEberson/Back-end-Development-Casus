@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CampingSysteemAPI", "Campin
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CampingSysteemLib", "CampingSysteemLib\CampingSysteemLib.csproj", "{0952C445-A487-4101-9ABF-6EECC533465F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GiteApi", "GiteApi", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gite", "..\Gite\Gite\Gite.csproj", "{EFDB9562-1C20-D526-E528-92B1FF5A62A5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,9 +31,16 @@ Global
 		{0952C445-A487-4101-9ABF-6EECC533465F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0952C445-A487-4101-9ABF-6EECC533465F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0952C445-A487-4101-9ABF-6EECC533465F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EFDB9562-1C20-D526-E528-92B1FF5A62A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EFDB9562-1C20-D526-E528-92B1FF5A62A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EFDB9562-1C20-D526-E528-92B1FF5A62A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EFDB9562-1C20-D526-E528-92B1FF5A62A5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EFDB9562-1C20-D526-E528-92B1FF5A62A5} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E6E3EED3-31D5-4BD2-ACFE-E3C621D832BB}
